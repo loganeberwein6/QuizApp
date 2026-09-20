@@ -6,14 +6,68 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 const today = () => new Date().toISOString()
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) : ''
 
+/* ─── Settings ──────────────────────────────────────────────────────────────── */
+function loadSettings () {
+  try {
+    const saved = localStorage.getItem('quiz-settings')
+    return { autoAdvanceSeconds: 3, ...( saved ? JSON.parse(saved) : {}) }
+  } catch { return { autoAdvanceSeconds: 3 } }
+}
+
+function saveSettings (patch) {
+  state.settings = { ...state.settings, ...patch }
+  localStorage.setItem('quiz-settings', JSON.stringify(state.settings))
+}
+
+function settingsLabel (val) {
+  return val === 0 ? 'Manual — press Enter or click Next'
+       : val === 1 ? '1 second'
+       : `${val} seconds`
+}
+
+function showSettingsModal () {
+  let val = state.settings.autoAdvanceSeconds
+
+  showModal(`
+    <div class="modal-title">⚙ Settings</div>
+    <div class="form-group" style="margin-bottom:28px">
+      <label class="form-label">Auto-continue after correct answer</label>
+      <p class="config-desc">0 = press Enter to continue &nbsp;·&nbsp; 1–60 = auto-advance after N seconds</p>
+      <div class="threshold-picker">
+        <button class="btn btn-ghost threshold-btn" id="s-dec">−</button>
+        <span class="threshold-display" id="s-val" style="font-size:42px;min-width:64px">${val}</span>
+        <button class="btn btn-ghost threshold-btn" id="s-inc">+</button>
+      </div>
+      <p id="s-label" style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:6px">${settingsLabel(val)}</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="btn-settings-save">Save</button>
+    </div>
+  `, { onBackdropClick: closeModal })
+
+  const updateDisplay = () => {
+    $('#s-val').textContent   = val
+    $('#s-label').textContent = settingsLabel(val)
+  }
+  $('#s-dec').addEventListener('click', () => { val = clamp(val - 1, 0, 60); updateDisplay() })
+  $('#s-inc').addEventListener('click', () => { val = clamp(val + 1, 0, 60); updateDisplay() })
+  $('#btn-settings-save').addEventListener('click', () => {
+    saveSettings({ autoAdvanceSeconds: val })
+    closeModal()
+  })
+}
+
 /* ─── App State ─────────────────────────────────────────────────────────────── */
 const state = {
-  sets:        [],   // summary list from disk
-  currentSet:  null, // full set object in editor
-  threshold:   5,
-  quiz:        null, // QuizSession instance
-  quizSet:     null, // set being quizzed
-  prevScreen:  'home', // where quiz-config was opened from
+  sets:           [],
+  currentSet:     null,
+  threshold:      5,
+  quiz:           null,
+  quizSet:        null,
+  prevScreen:     'home',
+  settings:       { autoAdvanceSeconds: 3 }, // overwritten in init()
+  countdownTimer: null,
 }
 
 /* ─── Router ────────────────────────────────────────────────────────────────── */
@@ -512,6 +566,47 @@ function updateQProgress (prog, threshold, isMastered) {
   $('#q-progress-text').textContent = `${prog}/${threshold}`
 }
 
+/* ─── Countdown helpers ──────────────────────────────────────────────────────── */
+function startCountdown (seconds) {
+  clearCountdown()
+
+  const bar  = $('#countdown-bar')
+  const text = $('#countdown-text')
+  $('#feedback-countdown').classList.remove('hidden')
+
+  // Reset bar then animate it draining
+  bar.style.transition = 'none'
+  bar.style.width = '100%'
+  requestAnimationFrame(() => {
+    bar.style.transition = `width ${seconds}s linear`
+    bar.style.width = '0%'
+  })
+
+  let remaining = seconds
+  text.textContent = `Continuing in ${remaining}s…`
+
+  state.countdownTimer = setInterval(() => {
+    remaining--
+    if (remaining <= 0) {
+      clearCountdown()
+      nextQuestion()
+    } else {
+      text.textContent = `Continuing in ${remaining}s…`
+    }
+  }, 1000)
+}
+
+function clearCountdown () {
+  if (state.countdownTimer) {
+    clearInterval(state.countdownTimer)
+    state.countdownTimer = null
+  }
+  const bar = $('#countdown-bar')
+  if (bar) { bar.style.transition = 'none'; bar.style.width = '100%' }
+  $('#feedback-countdown')?.classList.add('hidden')
+  $('#btn-next-question')?.classList.remove('hidden')
+}
+
 function submitAnswer () {
   const session = state.quiz
   if (!session) return
@@ -526,32 +621,45 @@ function submitAnswer () {
   inp.disabled = true
   inp.classList.add(correct ? 'correct' : 'incorrect')
 
-  // Update question progress
+  // Update question progress bar
   updateQProgress(progress, session.threshold, session.mastered.has(q.id))
 
-  // Feedback
+  // Feedback badge
   const badge = $('#feedback-badge')
   badge.textContent = correct ? '✓ Correct!' : '✗ Incorrect'
   badge.className   = 'feedback-badge ' + (correct ? 'correct' : 'incorrect')
 
+  // Show correct answers only on wrong
   const answersDiv = $('#feedback-correct-answers')
-  if (correct) {
-    answersDiv.innerHTML = ''
-  } else {
-    answersDiv.innerHTML = `<strong>Accepted:</strong> ${q.answers.map(esc).join(', ')}`
-  }
+  answersDiv.innerHTML = correct ? '' : `<strong>Accepted:</strong> ${q.answers.map(esc).join(', ')}`
 
   $('#quiz-answer-area').classList.add('hidden')
   $('#quiz-feedback-area').classList.remove('hidden')
-  $('#btn-next-question').focus()
 
-  // Check if this was the last question to master
+  // All mastered — skip auto-advance, go straight to popup
   if (session.allMastered) {
-    setTimeout(handleAllMastered, 600)
+    $('#btn-next-question').classList.add('hidden')
+    $('#feedback-hint').classList.add('hidden')
+    setTimeout(handleAllMastered, 700)
+    return
+  }
+
+  const secs = state.settings.autoAdvanceSeconds
+  if (correct && secs > 0) {
+    // Auto-advance: show countdown, hide Next button
+    $('#btn-next-question').classList.add('hidden')
+    $('#feedback-hint').classList.add('hidden')
+    startCountdown(secs)
+  } else {
+    // Manual: show Next button + Enter hint
+    $('#btn-next-question').classList.remove('hidden')
+    $('#btn-next-question').focus()
+    $('#feedback-hint').classList.remove('hidden')
   }
 }
 
 function nextQuestion () {
+  clearCountdown()
   const session = state.quiz
   const { allMastered } = session.advance()
   if (allMastered) {
@@ -635,6 +743,7 @@ function esc (str) {
 /* ─── Event wiring ───────────────────────────────────────────────────────────── */
 function wireEvents () {
   // Home
+  $('#btn-settings').addEventListener('click', showSettingsModal)
   $('#btn-new-set').addEventListener('click', createNewSet)
   $('#btn-import').addEventListener('click', importSets)
 
@@ -686,17 +795,23 @@ function wireEvents () {
   })
 
   $('#btn-next-question').addEventListener('click', nextQuestion)
-  $('#btn-next-question').addEventListener('keydown', e => {
-    if (e.key === 'Enter') nextQuestion()
-  })
 
   $('#btn-end-quiz').addEventListener('click', endQuizPressed)
 
-  // Close modal on Escape
+  // Global keyboard shortcuts
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      const overlay = $('#modal-overlay')
-      if (!overlay.classList.contains('hidden')) closeModal()
+    const modalOpen = !$('#modal-overlay').classList.contains('hidden')
+
+    if (e.key === 'Escape' && modalOpen) {
+      closeModal()
+      return
+    }
+
+    // Enter during quiz feedback: skip countdown or advance manually
+    if (e.key === 'Enter' && !modalOpen) {
+      const quizActive    = $('#screen-quiz').classList.contains('active')
+      const feedbackShown = !$('#quiz-feedback-area').classList.contains('hidden')
+      if (quizActive && feedbackShown) nextQuestion()
     }
   })
 }
@@ -752,6 +867,7 @@ function initUpdater () {
 
 /* ─── Init ───────────────────────────────────────────────────────────────────── */
 async function init () {
+  state.settings = loadSettings()
   wireEvents()
   initUpdater()
   await loadHome()

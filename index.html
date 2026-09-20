@@ -15,6 +15,7 @@
       <span class="brand-name">Quiz App</span>
     </div>
     <div class="header-actions">
+      <button id="btn-settings" class="btn btn-ghost btn-icon" title="Settings">⚙</button>
       <button id="btn-import" class="btn btn-ghost">↑ Import</button>
       <button id="btn-new-set" class="btn btn-primary">+ New Set</button>
     </div>
@@ -111,7 +112,14 @@
       <div id="quiz-feedback-area" class="quiz-feedback-area hidden">
         <div id="feedback-badge" class="feedback-badge"></div>
         <div id="feedback-correct-answers" class="feedback-correct-answers"></div>
+        <div id="feedback-countdown" class="feedback-countdown hidden">
+          <div class="countdown-track">
+            <div id="countdown-bar" class="countdown-bar"></div>
+          </div>
+          <span id="countdown-text" class="countdown-text"></span>
+        </div>
         <button id="btn-next-question" class="btn btn-primary btn-quiz-submit">Next →</button>
+        <p id="feedback-hint" class="feedback-hint hidden">Press Enter to continue</p>
       </div>
 
       <div class="quiz-q-progress">

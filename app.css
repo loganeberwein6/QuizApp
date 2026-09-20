@@ -601,6 +601,31 @@ main {
 .mastered-title { font-size: 22px; font-weight: 800; text-align: center; margin-bottom: 8px; }
 .mastered-body  { text-align: center; color: var(--text-muted); margin-bottom: 24px; }
 
+/* ─── Countdown ───────────────────────────────────────────────────────────── */
+.feedback-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  max-width: 280px;
+}
+.countdown-track {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.countdown-bar {
+  height: 100%;
+  background: var(--success);
+  border-radius: 99px;
+  width: 100%;
+}
+.countdown-text { font-size: 13px; color: var(--text-muted); }
+.feedback-hint  { font-size: 13px; color: var(--text-muted); margin-top: -8px; }
+
 /* ─── Update banner ──────────────────────────────────────────────────────── */
 .update-banner {
   position: fixed;
