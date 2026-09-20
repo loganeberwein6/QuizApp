@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<title>Quiz App</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ─── Home Screen ─────────────────────────────────────────────────────────── -->
+<div id="screen-home" class="screen active">
+  <header>
+    <div class="header-brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">Quiz App</span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-import" class="btn btn-ghost">↑ Import</button>
+      <button id="btn-new-set" class="btn btn-primary">+ New Set</button>
+    </div>
+  </header>
+  <main>
+    <div id="sets-list" class="sets-list"></div>
+    <div id="empty-state" class="empty-state hidden">
+      <div class="empty-icon">📚</div>
+      <h2>No sets yet</h2>
+      <p>Create a new set or import one from a file.</p>
+      <div class="empty-actions">
+        <button class="btn btn-primary" onclick="createNewSet()">+ New Set</button>
+        <button class="btn btn-ghost" onclick="importSets()">↑ Import</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ─── Editor Screen ───────────────────────────────────────────────────────── -->
+<div id="screen-editor" class="screen">
+  <header>
+    <button class="btn btn-ghost btn-icon" id="btn-back-editor" title="Back">←</button>
+    <input type="text" id="set-name-input" class="set-name-input" placeholder="Set name…" maxlength="80">
+    <div class="header-actions">
+      <button id="btn-export-set" class="btn btn-ghost">↓ Export</button>
+      <button id="btn-start-quiz-from-editor" class="btn btn-primary">▶ Quiz</button>
+    </div>
+  </header>
+  <main>
+    <div class="editor-toolbar">
+      <span id="question-count-label" class="count-label">0 questions</span>
+      <button id="btn-add-question" class="btn btn-primary">+ Add Question</button>
+    </div>
+    <div id="questions-list" class="questions-list"></div>
+    <div id="questions-empty" class="inner-empty hidden">
+      <p>No questions yet. Add one to get started.</p>
+    </div>
+  </main>
+</div>
+
+<!-- ─── Quiz Config Screen ──────────────────────────────────────────────────── -->
+<div id="screen-quiz-config" class="screen">
+  <header>
+    <button class="btn btn-ghost btn-icon" id="btn-back-quiz-config" title="Back">←</button>
+    <h2 id="quiz-config-title" class="screen-title"></h2>
+  </header>
+  <main class="config-main">
+    <div class="config-card">
+      <h3>Mastery Threshold</h3>
+      <p class="config-desc">
+        How many times must you answer a question correctly to master it?
+        Getting it wrong subtracts one from your progress (min 0).
+      </p>
+      <div class="threshold-picker">
+        <button class="btn btn-ghost threshold-btn" id="threshold-dec">−</button>
+        <span id="threshold-value" class="threshold-display">5</span>
+        <button class="btn btn-ghost threshold-btn" id="threshold-inc">+</button>
+      </div>
+      <p id="config-stats" class="config-stats"></p>
+    </div>
+    <button id="btn-start-quiz" class="btn btn-primary btn-large">▶ Start Quiz</button>
+  </main>
+</div>
+
+<!-- ─── Quiz Screen ──────────────────────────────────────────────────────────── -->
+<div id="screen-quiz" class="screen">
+  <header class="quiz-header">
+    <div class="quiz-header-left">
+      <span id="quiz-set-name" class="quiz-set-name-label"></span>
+    </div>
+    <div class="quiz-header-center">
+      <span id="quiz-mastery-text" class="quiz-mastery-text"></span>
+      <div class="quiz-progress-track">
+        <div id="quiz-progress-fill" class="quiz-progress-fill"></div>
+      </div>
+    </div>
+    <div class="quiz-header-right">
+      <button id="btn-end-quiz" class="btn btn-ghost">End Quiz</button>
+    </div>
+  </header>
+  <main class="quiz-main">
+    <div id="quiz-content" class="quiz-content">
+
+      <div id="quiz-prompt-area" class="quiz-prompt-area">
+        <p id="quiz-prompt" class="quiz-prompt"></p>
+      </div>
+
+      <div id="quiz-answer-area" class="quiz-answer-area">
+        <input type="text" id="quiz-answer-input" class="quiz-answer-input"
+               placeholder="Type your answer…" autocomplete="off" spellcheck="false">
+        <button id="btn-submit-answer" class="btn btn-primary btn-quiz-submit">Submit</button>
+      </div>
+
+      <div id="quiz-feedback-area" class="quiz-feedback-area hidden">
+        <div id="feedback-badge" class="feedback-badge"></div>
+        <div id="feedback-correct-answers" class="feedback-correct-answers"></div>
+        <button id="btn-next-question" class="btn btn-primary btn-quiz-submit">Next →</button>
+      </div>
+
+      <div class="quiz-q-progress">
+        <span class="q-progress-label">This question</span>
+        <div class="q-progress-track">
+          <div id="q-progress-fill" class="q-progress-fill"></div>
+        </div>
+        <span id="q-progress-text" class="q-progress-text"></span>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ─── Update notification (bottom-right toast) ─────────────────────────────── -->
+<div id="update-banner" class="update-banner hidden">
+  <span class="update-banner-icon">⬆</span>
+  <span id="update-banner-text" class="update-banner-text"></span>
+  <div class="update-banner-bar hidden">
+    <div id="update-banner-bar-fill" class="update-banner-bar-fill"></div>
+  </div>
+  <button id="btn-update-action" class="btn btn-primary" style="padding:5px 14px;font-size:13px;flex-shrink:0"></button>
+  <button id="btn-update-dismiss" class="btn btn-ghost" style="padding:4px 8px;font-size:12px;flex-shrink:0">✕</button>
+</div>
+
+<!-- ─── Modal System ─────────────────────────────────────────────────────────── -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div id="modal-box" class="modal-box"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

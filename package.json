@@ -1,0 +1,55 @@
+{
+  "name": "quiz-app",
+  "version": "1.0.0",
+  "description": "A portable quiz app with mastery tracking",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable",
+    "dist": "electron-builder --win portable --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.quizapp.portable",
+    "productName": "Quiz App",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "loganeberwein6",
+        "repo": "QuizApp"
+      }
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "app.css",
+      "app.js",
+      "node_modules/**"
+    ],
+    "win": {
+      "requestedExecutionLevel": "asInvoker",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "QuizApp.exe"
+    }
+  }
+}
