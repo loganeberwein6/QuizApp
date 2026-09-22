@@ -443,10 +443,17 @@ main {
 
 .feedback-correct-answers {
   font-size: 14px;
-  color: var(--text-muted);
+  color: var(--text-sec);
   line-height: 1.6;
+  background: var(--error-dim);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  width: 100%;
+  max-width: 480px;
 }
-.feedback-correct-answers strong { color: var(--text-sec); }
+.feedback-correct-answers:empty { display: none; }
+.feedback-correct-answers strong { color: var(--error); }
 
 /* ─── Question progress ───────────────────────────────────────────────────── */
 .quiz-q-progress {
