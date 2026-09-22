@@ -1,0 +1,4 @@
+owner: loganeberwein6
+repo: QuizApp
+updaterCacheDirName: quiz-app-updater
+provider: github

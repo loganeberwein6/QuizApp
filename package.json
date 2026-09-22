@@ -1,6 +1,6 @@
 {
   "name": "quiz-app",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A portable quiz app with mastery tracking",
   "main": "main.js",
   "scripts": {
@@ -48,8 +48,15 @@
         }
       ]
     },
+    "extraResources": [
+      {
+        "from": "app-update.yml",
+        "to": "app-update.yml"
+      }
+    ],
     "portable": {
-      "artifactName": "QuizApp.exe"
+      "artifactName": "QuizApp.exe",
+      "unpackDirName": "QuizApp"
     }
   }
 }
